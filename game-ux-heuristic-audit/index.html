@@ -1,0 +1,628 @@
+<!doctype html><html><head><meta charset=utf8><meta name=viewport content="width=device-width,initial-scale=1,viewport-fit=cover"><style>:root{color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}html{scroll-padding-top:env(safe-area-inset-top,0px)}body{margin:0;padding:0;font:14px -apple-system,BlinkMacSystemFont,sans-serif;background:#fff;color:#000}img{max-width:100%}[hidden]:not([hidden=until-found i]){display:none!important}</style></head><body>
+<meta name="claude:viewport-fit-sides" content="cover">
+<title>Game UX Heuristic Audit</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Chakra+Petch:wght@500;600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+:root{
+  color-scheme: light;
+  --bg:#f5f3fb; --surface:#ffffff; --surface-2:#ebe7f7; --line:#d8d1ee;
+  --fg:#17122e; --muted:#5c5478;
+  --accent:#5b3fe0; --accent-fg:#ffffff;
+  --hl:#ffc83d; --hl-fg:#17122e;
+  --hero:#1c1538; --hero-fg:#f6f3ff; --hero-muted:#b9b0dc;
+  --crit:#d93a3f; --major:#c2500a; --minor:#e3b200; --cosmetic:#2f6fd0; --on-sev:#ffffff;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    color-scheme:dark;
+    --bg:#0e0b1f; --surface:#171231; --surface-2:#221a44; --line:#352a63;
+    --fg:#efeaff; --muted:#a79fcc;
+    --accent:#9c85ff; --accent-fg:#120d2b;
+    --hl:#ffc83d; --hl-fg:#17122e;
+    --hero:#0a0716; --hero-fg:#f6f3ff; --hero-muted:#a79fcc;
+    --crit:#ff6b6e; --major:#ff8a3d; --minor:#f5c842; --cosmetic:#5b9cf0; --on-sev:#14171b;
+  }
+}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#0e0b1f; --surface:#171231; --surface-2:#221a44; --line:#352a63;
+  --fg:#efeaff; --muted:#a79fcc;
+  --accent:#9c85ff; --accent-fg:#120d2b;
+  --hl:#ffc83d; --hl-fg:#17122e;
+  --hero:#0a0716; --hero-fg:#f6f3ff; --hero-muted:#a79fcc;
+  --crit:#ff6b6e; --major:#ff8a3d; --minor:#f5c842; --cosmetic:#5b9cf0; --on-sev:#14171b;
+}
+body{
+  margin:0; background:var(--bg); color:var(--fg);
+  font:14px/1.5 "IBM Plex Sans", system-ui, sans-serif;
+  padding-left:max(16px, env(safe-area-inset-left, 0px));
+  padding-right:max(16px, env(safe-area-inset-right, 0px));
+  padding-block:16px 40px;
+}
+.wrap{max-width:980px; margin:0 auto}
+svg.i{width:16px; height:16px; flex:0 0 auto; fill:none; stroke:currentColor; stroke-width:1.75; stroke-linecap:round; stroke-linejoin:round}
+.hero{background:var(--hero); color:var(--hero-fg); border-radius:10px; padding:22px 22px 20px}
+.hero::before{content:""; display:block; width:56px; height:4px; border-radius:2px; background:var(--hl); margin-bottom:14px}
+.kicker{font:500 11px/1.4 "IBM Plex Mono", monospace; letter-spacing:.12em; text-transform:uppercase; color:var(--hero-muted)}
+h1{font:700 30px/1.1 "Chakra Petch", sans-serif; letter-spacing:.01em; margin:8px 0 10px; text-wrap:balance}
+h1 em{font-style:normal}
+.hero p{margin:0 0 8px; max-width:60ch; color:var(--hero-fg)}
+.how{margin:14px 0 0; padding:0; list-style:none; counter-reset:s; display:grid; gap:6px}
+.how li{counter-increment:s; display:grid; grid-template-columns:24px 1fr; gap:8px; font-size:14px; color:var(--hero-fg)}
+.how li::before{content:counter(s); font:600 12px/22px "IBM Plex Mono", monospace; text-align:center; width:24px; height:22px; border-radius:999px; background:var(--hl); color:var(--hl-fg)}
+.field{display:grid; gap:4px; margin-top:12px}
+.field > span{font-size:12px; color:var(--muted); font-weight:500}
+.hero .field > span{color:var(--hero-muted)}
+input,textarea{
+  font:inherit; color:var(--fg); background:var(--surface); border:1px solid var(--line);
+  border-radius:6px; padding:8px 10px; width:100%; box-sizing:border-box;
+}
+textarea{resize:vertical; min-height:56px}
+button{font:inherit}
+input:focus,textarea:focus,button:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tabs{display:flex; gap:2px; overflow-x:auto; border-bottom:1px solid var(--line); margin-top:16px}
+.tab{
+  flex:0 0 auto; display:flex; align-items:center; gap:6px; background:none; border:0; border-bottom:2px solid transparent;
+  padding:10px 10px 9px; color:var(--muted); font:500 13px "IBM Plex Sans", sans-serif; cursor:pointer; white-space:nowrap;
+}
+.tab[aria-selected="true"]{color:var(--fg); border-bottom-color:var(--hl)}
+.tab[aria-selected="true"] svg.i{color:var(--accent)}
+.count{font:500 11px "IBM Plex Mono", monospace; color:var(--muted)}
+.count.done{color:var(--accent)}
+h2{font:600 21px/1.2 "Chakra Petch", sans-serif; margin:20px 0 4px; text-wrap:balance; display:flex; align-items:center; gap:8px}
+h2 svg.i{color:var(--accent); width:22px; height:22px}
+h3{font:600 15px/1.3 "Chakra Petch", sans-serif; margin:0 0 8px}
+.ask{color:var(--muted); margin:0 0 14px}
+.item{
+  background:var(--surface); border:1px solid var(--line); border-radius:8px;
+  padding:14px; display:grid; gap:10px; margin-bottom:10px;
+}
+.item-text{font-weight:500}
+.seg{display:flex; flex-wrap:wrap; gap:6px}
+.seg button, .btn{
+  display:inline-flex; align-items:center; gap:6px;
+  background:var(--surface-2); border:1px solid var(--line); color:var(--fg);
+  border-radius:999px; padding:5px 12px; font:500 12px "IBM Plex Sans", sans-serif; cursor:pointer;
+}
+.seg button[aria-pressed="true"]{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+.seg button.pick[aria-pressed="true"][data-sev="critical"]{background:var(--crit); border-color:var(--crit); color:var(--on-sev)}
+.seg button.pick[aria-pressed="true"][data-sev="major"]{background:var(--major); border-color:var(--major); color:var(--on-sev)}
+.seg button.pick[aria-pressed="true"][data-sev="minor"]{background:var(--minor); border-color:var(--minor); color:var(--on-sev)}
+.seg button.pick[aria-pressed="true"][data-sev="cosmetic"]{background:var(--cosmetic); border-color:var(--cosmetic); color:var(--on-sev)}
+.issue{background:var(--surface-2); border-radius:6px; padding:10px 12px; display:grid; gap:2px}
+.hint{font-size:11px; color:var(--muted); line-height:1.4; margin-top:2px}
+.info{position:relative; display:inline-flex; vertical-align:middle; margin-left:6px; color:var(--muted); cursor:help; border-radius:50%}
+.info svg.i{width:16px; height:16px}
+.info:hover, .info:focus-visible{color:var(--accent)}
+.info:focus-visible{outline:2px solid var(--accent); outline-offset:2px}
+.tip{display:none; position:absolute; z-index:5; left:-8px; top:calc(100% + 8px); width:min(300px, 78vw); background:#0a0716; color:#f6f3ff; font:400 13px/1.45 "IBM Plex Sans", system-ui, sans-serif; padding:10px 12px; border-radius:6px; box-shadow:0 8px 20px rgba(0,0,0,.35)}
+.info:hover .tip, .info:focus .tip{display:block}
+.works-tag{display:inline-block; font:600 11px "IBM Plex Mono", monospace; text-transform:uppercase; letter-spacing:.06em; background:var(--hl); color:var(--hl-fg); padding:2px 8px; border-radius:4px; margin-bottom:4px; justify-self:start}
+.pager{display:flex; justify-content:space-between; gap:8px; margin-top:14px; flex-wrap:wrap}
+.btn.primary{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+.btn.small{padding:4px 10px; font-size:12px}
+.btn.on{background:var(--accent); color:var(--accent-fg); border-color:var(--accent)}
+.note{background:var(--surface-2); border-radius:8px; padding:10px 12px; font-size:13px; margin:0 0 10px; border-left:3px solid var(--hl)}
+.tally{font:500 12px "IBM Plex Mono", monospace; color:var(--muted); margin:0 0 12px}
+.row{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:12px; margin-bottom:8px; display:grid; gap:6px}
+.row.out{color:var(--muted)}
+.row-top{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.row-text{margin:0; font-weight:500}
+.row.out .row-text{font-weight:400}
+.meta{margin:0; font-size:12px; color:var(--muted)}
+.quote{margin:0; font-size:13px; opacity:.92}
+.row-ctl{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
+.rank{font:700 14px "Chakra Petch", sans-serif; color:var(--accent)}
+.muted{color:var(--muted); font-size:12px}
+.prio{font:500 12px "IBM Plex Mono", monospace; color:var(--muted)}
+.chip{font:600 11px "IBM Plex Mono", monospace; text-transform:uppercase; letter-spacing:.06em; padding:2px 8px; border-radius:4px; background:var(--surface-2); color:var(--fg)}
+.chip.critical{background:var(--crit); color:var(--on-sev)}
+.chip.major{background:var(--major); color:var(--on-sev)}
+.chip.minor{background:var(--minor); color:var(--on-sev)}
+.chip.cosmetic{background:var(--cosmetic); color:var(--on-sev)}
+.action{background:var(--surface); border:1px solid var(--line); border-radius:8px; padding:14px; margin-bottom:10px}
+.todo{margin:6px 0 0; padding-left:18px}
+.todo li{margin:2px 0}
+textarea.report{font:12px/1.5 "IBM Plex Mono", monospace; min-height:320px; white-space:pre}
+.actions-row{display:flex; gap:8px; flex-wrap:wrap; margin-top:12px}
+.footer{margin-top:24px; font-size:12px; color:var(--muted)}
+</style>
+
+<div class="wrap">
+  <header class="hero">
+    <div class="kicker">Project and Portfolio IV · Week 1 · Self-audit</div>
+    <h1>Game UX <em>Heuristic</em> Audit</h1>
+    <p>Use this tool to run your self-audit. Rate every checkpoint against your own screens, one category at a time.</p>
+    <ol class="how">
+      <li>Open a category. Work through every checkpoint, even the ones you feel sure about.</li>
+      <li>Open your Figma screens and rate how well each one meets the checkpoint.</li>
+      <li>For anything Weak or Missing, name the exact screen and element, pick a severity, and write what breaks.</li>
+      <li>In the Plan tab, pick your top 5 to 6 fixes. Then copy or download the report.</li>
+    </ol>
+    <label class="field"><span>Project name</span><input id="proj" type="text" placeholder="e.g. Shipped HUD prototype"></label>
+  </header>
+
+  <nav class="tabs" id="tabs" role="tablist" aria-label="Audit sections"></nav>
+  <main id="main" style="margin-top:14px"></main>
+  <p class="footer">Answers save in this browser only. Download the PDF before you switch devices or clear browser data.</p>
+</div>
+
+<script>
+const KEY = "gux-heuristic-audit-v1";
+
+/* Icons: hand-drawn, Phosphor-style, single color (currentColor). */
+const ICON = {
+  onb:  '<circle cx="12" cy="12" r="9"/><path d="M15.5 8.5l-2 5-5 2 2-5z"/>',
+  ctl:  '<path d="M6.5 7h11a4.5 4.5 0 0 1 4.4 5.4l-.8 3.6a2.5 2.5 0 0 1-4.3 1.2L14 15h-4l-2.8 2.2a2.5 2.5 0 0 1-4.3-1.2l-.8-3.6A4.5 4.5 0 0 1 6.5 7z"/><path d="M7.5 10v3M6 11.5h3"/><circle cx="15.5" cy="10.5" r=".6"/><circle cx="17.5" cy="12.5" r=".6"/>',
+  ifc:  '<rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 9h18M9 9v11"/>',
+  pac:  '<circle cx="12" cy="13" r="8"/><path d="M12 13l3-3M10 2h4"/>',
+  imm:  '<path d="M12 3l1.8 5.2L19 10l-5.2 1.8L12 17l-1.8-5.2L5 10l5.2-1.8z"/>',
+  plan: '<path d="M9 6h11M9 12h11M9 18h11"/><path d="M4 6h.01M4 12h.01M4 18h.01" stroke-width="3"/>',
+  report:'<path d="M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"/><path d="M14 3v6h6M8 13h8M8 17h5"/>',
+  copy: '<rect x="9" y="9" width="11" height="11" rx="2"/><path d="M5 15V5a2 2 0 0 1 2-2h10"/>',
+  trash:'<path d="M4 7h16M10 11v6M14 11v6M6 7l1 13h10l1-13M9 7V4h6v3"/>',
+  down: '<path d="M12 3v12M7 10l5 5 5-5M5 21h14"/>',
+  info: '<circle cx="12" cy="12" r="9"/><path d="M12 11v5"/><circle cx="12" cy="8" r=".6"/>'
+};
+function svg(name){ return `<svg class="i" viewBox="0 0 24 24" aria-hidden="true">${ICON[name]}</svg>`; }
+
+const CATS = [
+  { id:"onb", short:"Onboarding", name:"Onboarding & Learning", ask:"How well does your design teach the player?",
+    items:[
+      "Teaches through play, not walls of text",
+      "Introduces mechanics gradually (progressive disclosure)",
+      "Allows safe experimentation",
+      "Clear first 5 minutes with obvious first action",
+      "Doesn't overwhelm with information"
+    ]},
+  { id:"ctl", short:"Controls", name:"Controls & Feedback", ask:"How responsive and clear are interactions?",
+    items:[
+      "Input-to-response feels instant and predictable",
+      "Actions have visible, audible, or haptic confirmation",
+      "Error states are clear (what went wrong and why)",
+      "Controls are consistent across contexts",
+      "Player always knows if an action succeeded or failed"
+    ]},
+  { id:"ifc", short:"Interface", name:"Interface Clarity", ask:"How readable and navigable is your UI?",
+    items:[
+      "Information hierarchy is clear (most important = most visible)",
+      "Navigation is predictable (back always works, location is obvious)",
+      "Text is readable at intended viewing distance",
+      "Icons and symbols are understandable without labels (or have labels)",
+      "HUD doesn't obstruct gameplay"
+    ]},
+  { id:"pac", short:"Pacing", name:"Pacing & Challenge", ask:"How well does your design manage engagement?",
+    items:[
+      "Difficulty ramps gradually, not in spikes",
+      "Player has agency over pacing when possible",
+      "Rewards feel earned, not arbitrary",
+      "Failure provides useful information (what to try differently)",
+      "Downtime exists between intense moments"
+    ]},
+  { id:"imm", short:"Immersion", name:"Immersion & Polish", ask:"How cohesive and polished is the experience?",
+    items:[
+      "Visual style is consistent throughout",
+      "Audio reinforces actions and atmosphere",
+      "Transitions between states feel smooth",
+      "No jarring breaks in the experience (loading screens, placeholder art)",
+      "Details reward attention (micro-interactions, environmental storytelling)"
+    ]}
+];
+
+const STATUS = [["strong","Strong"],["adequate","Adequate"],["weak","Weak"],["missing","Missing"]];
+
+/* Plain-language notes for each checkpoint, shown on hover. */
+const TIPS = {
+  "onb-0": "Players should learn by doing. Long text blocks and tutorials that explain before anything happens tend to get skipped.",
+  "onb-1": "Introduce one mechanic at a time, when the player needs it. Showing every control on the first screen overloads them.",
+  "onb-2": "Players can try things without punishment. An easy undo, a practice area, or low-stakes early failure lets them test a mechanic before it matters.",
+  "onb-3": "The first screen should show one obvious action. If a new player has to guess what to do first, the opening is failing.",
+  "onb-4": "Limit what's on screen in the first session. Too many prompts, numbers, or options at once make it hard to learn anything.",
+  "ctl-0": "Pressing a button should produce a result right away, with no lag or surprise. Delay makes players feel the game is ignoring them.",
+  "ctl-1": "Every meaningful action should give feedback: a sound, a visual change, or a vibration. Silence makes players wonder if it worked.",
+  "ctl-2": "When something fails, say what went wrong and what to do next. \"Can't equip: level too low\" helps. A dimmed button with no reason doesn't.",
+  "ctl-3": "The same input should do the same thing across menus, levels, and modes. Changing meaning by context forces players to relearn.",
+  "ctl-4": "Each action should clearly end in success or failure. If the result is ambiguous, players can't learn from it.",
+  "ifc-0": "The most important information should be the most visible. Health matters more than a score in most games, so it should stand out more.",
+  "ifc-1": "Back should always work, and players should always know where they are. Dead ends and hidden back buttons are a common source of frustration.",
+  "ifc-2": "Text needs to read at the distance the game is played: across a room on a TV, or at arm's length on a phone. Small, thin type fails on both.",
+  "ifc-3": "Symbols should be clear without a label, or come with one. Add a label or tooltip when the meaning isn't obvious.",
+  "ifc-4": "Interface elements shouldn't cover the action or important parts of the screen. Check the HUD during busy moments, not just on an empty screen.",
+  "pac-0": "Challenge should rise in small steps. Sudden jumps, like a boss that needs a skill the game never taught, cause quitting.",
+  "pac-1": "Where possible, let players choose speed, skip repeated content, or set difficulty. Forced pacing frustrates players who want something else.",
+  "pac-2": "Rewards should come from things the player did. Random or unexplained rewards feel arbitrary and weaken motivation.",
+  "pac-3": "When a player fails, the game should show what to try differently. Failure with no lesson just feels unfair.",
+  "pac-4": "Give players breathing room between hard sections. Constant intensity leads to fatigue, not excitement.",
+  "imm-0": "Art, colors, icons, and type should follow one system. Mixed styles break the sense that one designer made the game.",
+  "imm-1": "Sound should match what happens on screen and support the mood. Missing or mismatched audio makes actions feel weaker.",
+  "imm-2": "Moves between screens and states should flow. Abrupt cuts or long unexplained loads pull players out of the experience.",
+  "imm-3": "Loading screens, placeholder art, and debug text break the experience. Note them when they appear, even in prototypes.",
+  "imm-4": "Small touches like micro-animations, environmental clues, or flavor text make the world feel alive. Players notice them when they look closely."
+};
+const SEV = [
+  { id:"critical", label:"Critical", rank:1, desc:"blocks progress" },
+  { id:"major",    label:"Major",    rank:2, desc:"degrades the experience" },
+  { id:"minor",    label:"Minor",    rank:3, desc:"mild friction" },
+  { id:"cosmetic", label:"Cosmetic", rank:4, desc:"polish" }
+];
+
+function blank(){
+  const s = { project:"", view:"onb", plan:{}, actions:{}, cats:{} };
+  CATS.forEach(c => {
+    s.cats[c.id] = { items: c.items.map(() => ({ status:null, sev:null, where:"", finding:"", works:"" })) };
+  });
+  return s;
+}
+
+function load(){
+  const b = blank();
+  try {
+    const raw = localStorage.getItem(KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      b.project = s.project || "";
+      b.view = s.view || "onb";
+      b.plan = s.plan || {};
+      b.actions = s.actions || {};
+      CATS.forEach(c => {
+        const src = s.cats && s.cats[c.id] && s.cats[c.id].items;
+        if (src) b.cats[c.id].items = b.cats[c.id].items.map((x, i) => Object.assign(x, src[i] || {}));
+      });
+    }
+  } catch (e) {}
+  return b;
+}
+
+let state = load();
+
+function save(){
+  try { localStorage.setItem(KEY, JSON.stringify(state)); } catch (e) {}
+}
+
+const $ = s => document.querySelector(s);
+const app = document.getElementById("main");
+
+function esc(s){
+  return String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function cap(s){ return s ? s[0].toUpperCase() + s.slice(1) : ""; }
+function sevOf(id){ return SEV.find(s => s.id === id); }
+function isIssue(it){ return it.status === "weak" || it.status === "missing"; }
+
+function issues(){
+  const out = [];
+  CATS.forEach((c, ci) => {
+    state.cats[c.id].items.forEach((it, idx) => {
+      if (isIssue(it)) out.push({ key: c.id + "-" + idx, cat: c, ci, idx, text: c.items[idx],
+        where: it.where || "", finding: it.finding || "", sev: it.sev, status: it.status });
+    });
+  });
+  return out;
+}
+
+function prioOf(iss){
+  if (!iss.sev) return "";
+  if (iss.sev === "minor" || iss.sev === "cosmetic") return "Fill-in";
+  return (state.plan[iss.key] && state.plan[iss.key].effort === "high") ? "Major project" : "Quick win";
+}
+
+function cmp(a, b){
+  const ra = sevOf(a.sev) ? sevOf(a.sev).rank : 9;
+  const rb = sevOf(b.sev) ? sevOf(b.sev).rank : 9;
+  if (ra !== rb) return ra - rb;
+  const ea = state.plan[a.key] && state.plan[a.key].effort === "high" ? 1 : 0;
+  const eb = state.plan[b.key] && state.plan[b.key].effort === "high" ? 1 : 0;
+  if (ea !== eb) return ea - eb;
+  return a.ci - b.ci || a.idx - b.idx;
+}
+
+function catStats(id){
+  const d = state.cats[id].items;
+  const rated = d.filter(x => x.status).length;
+  const done = rated === d.length
+    && d.every(x => !isIssue(x) || (x.sev && x.finding.trim()))
+    && d.some(x => x.works.trim());
+  return { rated, done };
+}
+
+function chip(sev){
+  return sev ? `<span class="chip ${sev}">${sevOf(sev).label}</span>` : `<span class="chip">Unrated</span>`;
+}
+
+function renderTabs(){
+  const tabs = CATS.map(c => {
+    const st = catStats(c.id);
+    return { id:c.id, label:c.short, count:`${st.rated}/5`, done:st.done, icon:c.id };
+  });
+  const inc = issues().filter(i => state.plan[i.key] && state.plan[i.key].include).length;
+  tabs.push({ id:"plan", label:"Plan", count: String(inc), done: inc >= 5 && inc <= 6, icon:"plan" });
+  tabs.push({ id:"report", label:"Report", icon:"report" });
+  $("#tabs").innerHTML = tabs.map(t =>
+    `<button class="tab" role="tab" aria-selected="${state.view === t.id}" data-act="view" data-v="${t.id}">${svg(t.icon)}${esc(t.label)}${t.count ? `<span class="count ${t.done ? "done" : ""}">${t.count}</span>` : ""}</button>`
+  ).join("");
+}
+
+function renderCat(c){
+  const data = state.cats[c.id].items;
+  let h = `<h2>${svg(c.id)}${esc(c.name)}</h2><p class="ask">${esc(c.ask)}</p>`;
+  c.items.forEach((text, i) => {
+    const it = data[i];
+    const ds = `data-cat="${c.id}" data-idx="${i}"`;
+    const tip = TIPS[c.id + "-" + i] || "";
+    h += `<article class="item"><div class="item-text">${i + 1}. ${esc(text)}${tip ? `<span class="info" tabindex="0">${svg("info")}<span class="tip" role="tooltip">${esc(tip)}</span></span>` : ""}</div>`;
+    h += `<div class="seg" role="group" aria-label="How well does your design meet this">` +
+      STATUS.map(([v, l]) => `<button aria-pressed="${it.status === v}" data-act="status" ${ds} data-v="${v}">${l}</button>`).join("") +
+      `</div>`;
+    if (isIssue(it)) {
+      h += `<div class="issue">
+        <label class="field"><span>Where exactly (screen and element)</span><input ${ds} data-f="where" value="${esc(it.where)}" placeholder="e.g. Settings menu, Audio tab, bottom panel"></label>
+        <div class="field"><span>Severity</span>
+          <div class="seg">${SEV.map(s => `<button class="pick" data-sev="${s.id}" aria-pressed="${it.sev === s.id}" data-act="sev" ${ds} data-v="${s.id}">${s.label}</button>`).join("")}</div>
+          <small class="hint">${SEV.map(s => s.label + ": " + s.desc).join(" · ")}</small>
+        </div>
+        <label class="field"><span>What breaks</span><textarea rows="2" ${ds} data-f="finding" placeholder="Be specific. "No back button on the Audio tab" works. "Menu is confusing" doesn't.">${esc(it.finding)}</textarea></label>
+      </div>`;
+    } else if (it.status) {
+      h += `<label class="field"><span class="works-tag">What works</span><textarea rows="1" ${ds} data-f="works" placeholder="Green note. Optional, but each category needs one.">${esc(it.works)}</textarea></label>`;
+    }
+    h += `</article>`;
+  });
+  const idx = CATS.findIndex(x => x.id === c.id);
+  const next = CATS[idx + 1];
+  const prev = CATS[idx - 1];
+  h += `<div class="pager">
+    ${prev ? `<button class="btn" data-act="view" data-v="${prev.id}">← ${esc(prev.short)}</button>` : `<span></span>`}
+    <button class="btn primary" data-act="view" data-v="${next ? next.id : "plan"}">${esc(next ? next.short : "Plan")} →</button>
+  </div>`;
+  return h;
+}
+
+function planHint(n){
+  if (n === 0) return "Add issues from your checklist to build the plan.";
+  if (n < 5) return `${5 - n} more to reach 5. The plan needs 5 to 6 improvements.`;
+  if (n > 6) return `Trim ${n - 6} to stay at 6.`;
+  return "Plan size is right.";
+}
+
+function row(iss, rank){
+  const p = state.plan[iss.key] || {};
+  const inc = !!p.include;
+  const prio = prioOf(iss);
+  return `<div class="row ${inc ? "" : "out"}">
+    <div class="row-top">${rank ? `<span class="rank">#${rank}</span>` : ""}${chip(iss.sev)}<span class="muted">${esc(iss.cat.short)} · ${iss.status === "missing" ? "Missing" : "Weak"}</span></div>
+    <p class="row-text">${esc(iss.text)}</p>
+    ${iss.where ? `<p class="meta">${esc(iss.where)}</p>` : ""}
+    <p class="quote">${iss.finding.trim() ? esc(iss.finding) : "<em>No finding written yet.</em>"}</p>
+    <div class="row-ctl">
+      <button class="btn small ${inc ? "on" : ""}" aria-pressed="${inc}" data-act="include" data-key="${iss.key}">${inc ? "In plan" : "Add to plan"}</button>
+      ${inc ? `<div class="seg">${[["low","Low effort"],["high","High effort"]].map(([v, l]) =>
+        `<button aria-pressed="${(p.effort || "low") === v}" data-act="effort" data-key="${iss.key}" data-v="${v}">${l}</button>`).join("")}</div>` : ""}
+      ${prio ? `<span class="prio">${prio}</span>` : ""}
+    </div>
+  </div>`;
+}
+
+function renderPlan(){
+  const all = issues().sort(cmp);
+  const inc = all.filter(i => state.plan[i.key] && state.plan[i.key].include);
+  const rest = all.filter(i => !(state.plan[i.key] && state.plan[i.key].include));
+  const tally = SEV.map(s => `${s.label} ${all.filter(i => i.sev === s.id).length}`).join(" · ");
+  let note = planHint(inc.length);
+  if (!all.length) note = "No Weak or Missing checkpoints yet. Zero issues usually means you haven't looked hard enough.";
+  else if (!all.some(i => i.sev === "critical" || i.sev === "major")) note += " No critical or major issues yet. Check whether you're rating too softly.";
+
+  let h = `<h2>${svg("plan")}Improvement plan</h2>
+    <p class="ask">Pick 5 to 6 issues. Rank by severity first. Quick wins come before major projects.</p>
+    <div class="note">${esc(note)}</div>
+    <p class="tally">${tally}</p>`;
+  h += inc.map((iss, k) => row(iss, k + 1)).join("");
+  h += rest.map(iss => row(iss, 0)).join("");
+
+  if (inc.length) {
+    h += `<h2>Action plans</h2><p class="ask">Write these for your top 2 to 3 issues.</p>`;
+    inc.slice(0, 3).forEach((iss, k) => {
+      const a = state.actions[iss.key] || {};
+      const ds = `data-scope="action" data-key="${iss.key}"`;
+      h += `<section class="action"><h3>${k + 1}. ${esc(iss.text)}</h3>
+        <label class="field"><span>Impact on the player</span><textarea rows="2" ${ds} data-f="impact">${esc(a.impact)}</textarea></label>
+        <label class="field"><span>Fix approach (specific design changes)</span><textarea rows="2" ${ds} data-f="fix">${esc(a.fix)}</textarea></label>
+        <label class="field"><span>Estimated effort</span><input type="text" ${ds} data-f="estimate" value="${esc(a.estimate)}" placeholder="e.g. 2 hours, 1 day"></label>
+        <label class="field"><span>Dependencies (what else this touches)</span><textarea rows="2" ${ds} data-f="deps">${esc(a.deps)}</textarea></label>
+      </section>`;
+    });
+  }
+  return h;
+}
+
+function buildReport(){
+  const v = x => (x || "").trim() || "not written";
+  const L = [];
+  L.push(`Heuristic self-audit: ${state.project.trim() || "Untitled project"}`, "");
+  CATS.forEach(c => {
+    L.push(c.name.toUpperCase());
+    state.cats[c.id].items.forEach((it, i) => {
+      L.push(`- ${it.status ? cap(it.status) : "Not rated"}: ${c.items[i]}`);
+      if (isIssue(it)) {
+        L.push(`  Where: ${v(it.where)}`);
+        L.push(`  Severity: ${it.sev ? sevOf(it.sev).label : "not rated"}`);
+        L.push(`  Finding: ${v(it.finding)}`);
+      }
+      if (it.works.trim()) L.push(`  Works: ${it.works.trim()}`);
+    });
+    L.push("");
+  });
+  const all = issues();
+  const inc = all.filter(i => state.plan[i.key] && state.plan[i.key].include).sort(cmp);
+  L.push("PRIORITIZED IMPROVEMENTS");
+  if (!inc.length) L.push("None selected.");
+  inc.forEach((iss, k) => {
+    L.push(`${k + 1}. ${iss.sev ? sevOf(iss.sev).label : "Unrated"} | ${prioOf(iss) || "Unrated"} | ${iss.where.trim() || iss.cat.short}: ${v(iss.finding)}`);
+  });
+  L.push("", "ACTION PLANS");
+  if (!inc.length) L.push("None yet.");
+  inc.slice(0, 3).forEach((iss, k) => {
+    const a = state.actions[iss.key] || {};
+    L.push(`${k + 1}. ${iss.text}`);
+    L.push(`   Issue: ${iss.where.trim() || iss.text}`);
+    L.push(`   Impact: ${v(a.impact)}`);
+    L.push(`   Fix approach: ${v(a.fix)}`);
+    L.push(`   Estimated effort: ${v(a.estimate)}`);
+    L.push(`   Dependencies: ${v(a.deps)}`);
+  });
+  return L.join("\n");
+}
+
+function todoList(){
+  const out = [];
+  CATS.forEach(c => {
+    const d = state.cats[c.id].items;
+    const left = d.filter(x => !x.status).length;
+    if (left) out.push(`${c.short}: rate ${left} more checkpoint${left === 1 ? "" : "s"}`);
+    d.forEach((x, i) => {
+      if (!isIssue(x)) return;
+      if (!x.sev) out.push(`${c.short}, checkpoint ${i + 1}: set a severity`);
+      if (!x.finding.trim()) out.push(`${c.short}, checkpoint ${i + 1}: write what breaks`);
+    });
+    if (!d.some(x => x.works.trim())) out.push(`${c.short}: add one "what works" note`);
+  });
+  const all = issues();
+  const inc = all.filter(i => state.plan[i.key] && state.plan[i.key].include);
+  if (inc.length < 5) out.push(`Plan: add ${5 - inc.length} more improvement${5 - inc.length === 1 ? "" : "s"} (5 to 6 required)`);
+  if (inc.length > 6) out.push(`Plan: trim to 6 improvements`);
+  if (inc.length < 2) out.push("Plan: action plans need at least 2 issues");
+  const labels = { impact:"impact", fix:"fix approach", estimate:"estimated effort", deps:"dependencies" };
+  inc.slice(0, 3).forEach((iss, k) => {
+    const a = state.actions[iss.key] || {};
+    Object.keys(labels).forEach(f => {
+      if (!(a[f] || "").trim()) out.push(`Action ${k + 1}: fill in ${labels[f]}`);
+    });
+  });
+  return out;
+}
+
+function renderReport(){
+  const todo = todoList();
+  return `<h2>${svg("report")}Report</h2>
+    <p class="ask">Use this as your notes. Paste it into your Figma file beside the screens you annotated.</p>
+    ${todo.length
+      ? `<div class="note"><strong>Still to finish</strong><ul class="todo">${todo.map(t => `<li>${esc(t)}</li>`).join("")}</ul></div>`
+      : `<div class="note">Everything is filled in. Copy the report or download the PDF.</div>`}
+    <textarea class="report" id="rep" readonly>${esc(buildReport())}</textarea>
+    <div class="actions-row">
+      <button class="btn primary" data-act="copy">${svg("copy")}<span>Copy report</span></button>
+      <button class="btn" data-act="pdf">${svg("down")}<span>Download PDF</span></button>
+      <button class="btn" data-act="reset">${svg("trash")}<span>Clear everything</span></button>
+    </div>`;
+}
+
+function render(){
+  renderTabs();
+  const v = state.view;
+  if (v === "plan") app.innerHTML = renderPlan();
+  else if (v === "report") app.innerHTML = renderReport();
+  else app.innerHTML = renderCat(CATS.find(x => x.id === v) || CATS[0]);
+}
+
+function flash(btn, label, ms){
+  const span = btn.querySelector("span");
+  const el = span || btn;
+  const old = el.textContent;
+  el.textContent = label;
+  setTimeout(() => { el.textContent = old; }, ms || 2200);
+}
+
+async function copyReport(btn){
+  const text = buildReport();
+  try {
+    await navigator.clipboard.writeText(text);
+    flash(btn, "Copied");
+  } catch (e) {
+    const ta = document.getElementById("rep");
+    if (ta) { ta.focus(); ta.select(); }
+    flash(btn, "Selected. Copy manually", 3000);
+  }
+}
+
+function downloadPDF(btn){
+  const lib = window.jspdf;
+  if (!lib || !lib.jsPDF) { flash(btn, "PDF library didn't load", 3000); return; }
+  try {
+    const doc = new lib.jsPDF({ unit:"pt", format:"letter" });
+    const lines = doc.splitTextToSize(buildReport(), 540);
+    let y = 56;
+    doc.setFont("courier", "normal");
+    doc.setFontSize(10);
+    lines.forEach(line => {
+      if (y > 740) { doc.addPage(); y = 56; }
+      doc.text(line, 36, y);
+      y += 13;
+    });
+    const slug = (state.project.trim() || "untitled").toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+    doc.save(`heuristic-audit-${slug || "untitled"}.pdf`);
+    flash(btn, "Downloaded");
+  } catch (e) {
+    flash(btn, "Download failed", 3000);
+  }
+}
+
+document.addEventListener("click", e => {
+  const el = e.target.closest("[data-act]");
+  if (!el) return;
+  const act = el.dataset.act;
+
+  if (act === "copy") { copyReport(el); return; }
+  if (act === "pdf") { downloadPDF(el); return; }
+  if (act === "reset") {
+    if (!el.dataset.armed) {
+      el.dataset.armed = "1";
+      flash(el, "Tap again to clear all", 3000);
+      setTimeout(() => { delete el.dataset.armed; }, 3000);
+      return;
+    }
+    state = blank();
+    save();
+    document.getElementById("proj").value = "";
+    render();
+    return;
+  }
+
+  if (act === "view") { state.view = el.dataset.v; }
+  else if (act === "status" || act === "sev") {
+    const it = state.cats[el.dataset.cat].items[+el.dataset.idx];
+    if (act === "status") it.status = el.dataset.v; else it.sev = el.dataset.v;
+  }
+  else if (act === "include") {
+    const p = state.plan[el.dataset.key] || (state.plan[el.dataset.key] = { effort: "low", include: false });
+    p.include = !p.include;
+  }
+  else if (act === "effort") {
+    const p = state.plan[el.dataset.key] || (state.plan[el.dataset.key] = { effort: "low", include: true });
+    p.effort = el.dataset.v;
+  }
+  save();
+  render();
+});
+
+document.addEventListener("input", e => {
+  const el = e.target;
+  if (el.id === "proj") { state.project = el.value; save(); return; }
+  const f = el.dataset.f;
+  if (!f) return;
+  if (el.dataset.scope === "action") {
+    const a = state.actions[el.dataset.key] || (state.actions[el.dataset.key] = {});
+    a[f] = el.value;
+  } else {
+    state.cats[el.dataset.cat].items[+el.dataset.idx][f] = el.value;
+  }
+  save();
+  renderTabs();
+  if (state.view === "report") render();
+});
+
+document.getElementById("proj").value = state.project;
+render();
+</script>
+
+</body></html>
